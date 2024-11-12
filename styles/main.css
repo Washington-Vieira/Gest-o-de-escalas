@@ -78,3 +78,49 @@
 }
 
 /* Remover estilização personalizada dos botões para usar o padrão do Streamlit */
+
+/* Ocultar estrutura de pastas e elemento específico */
+.st-emotion-cache-1ekxtbt.eczjsme16,
+.st-emotion-cache-1rtdyuf.e1g8pov64 {
+    display: none !important;
+}
+
+/* Ajuste adicional para garantir que a estrutura de pastas fique oculta */
+.main.st-emotion-cache-uf99v8.ea3mdgi8 {
+    padding-top: 0 !important;
+}
+
+/* Ajuste do posicionamento do bloco vertical */
+.stVerticalBlock.st-emotion-cache-64tehz.e1f1d6gn2 {
+    margin-top: -110px !important;
+    padding-top: 0 !important;
+}
+
+/* Ajuste dos elementos filhos do bloco vertical */
+.stVerticalBlock.st-emotion-cache-64tehz.e1f1d6gn2 > div {
+    padding-top: -70px !important;
+    margin-top: 5px !important;
+}
+
+/* Garante que não haja espaços indesejados */
+.stVerticalBlock.st-emotion-cache-64tehz.e1f1d6gn2 > div:first-child {
+    margin-top: 0 !important;
+}
+
+/* Ajuste da linha horizontal */
+.stElementContainer.st-emotion-cache-1321l1d hr {
+    
+    display: none !important;
+}
+
+/* Remove espaçamento extra do container */
+.stElementContainer.st-emotion-cache-1321l1d {
+    padding: 5px!important;
+    margin: 0 !important;
+}
+
+/* Ajusta o container do markdown */
+.stElementContainer.st-emotion-cache-1321l1d .stMarkdown {
+    margin: 0 !important;
+    padding: 0 !important;
+}
