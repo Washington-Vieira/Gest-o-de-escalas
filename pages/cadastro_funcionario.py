@@ -35,9 +35,21 @@ def app():
         # Se não for folguista, permite a seleção de turno
         turno_funcionario = st.selectbox('Selecione o Turno', options=turnos_funcionarios)
 
-        # Exibe os campos de hora de início e fim do turno
-        hora_inicio = st.time_input('Hora de Início do Turno', value=time(6, 0))
-        hora_fim = st.time_input('Hora de Fim do Turno', value=time(14, 0))
+        # Criar lista de horários em intervalos de 15 minutos
+        horarios = []
+        for hora in range(24):  # 0 a 23 horas
+            for minuto in [0, 10, 15, 30, 45]:
+                horarios.append(time(hora, minuto))
+
+        hora_inicio = st.selectbox('Hora de Início do Turno', 
+                                 options=horarios,
+                                 format_func=lambda x: x.strftime('%H:%M'),
+                                 index=horarios.index(time(6, 0)))
+        
+        hora_fim = st.selectbox('Hora de Fim do Turno', 
+                              options=horarios,
+                              format_func=lambda x: x.strftime('%H:%M'),
+                              index=horarios.index(time(14, 0)))
 
     familia_letras = funcoes_familias[funcao_funcionario]
     data_inicio = st.date_input('Data de Início', value=datetime.today())
