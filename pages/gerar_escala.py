@@ -7,6 +7,7 @@ from utils import transformar_escala_para_dataframe, turnos_funcionarios
 from exportar_escalas import adicionar_botao_exportacao, exportar_escalas_para_excel
 from database.config import get_session
 from database.crud import DatabaseManager
+from database.models import Ferias, Atestado
 
 def app():
     st.title('Geração de Escala')
@@ -27,20 +28,13 @@ def app():
         empresa_id = empresa_options[empresa_selecionada]
         funcionarios = db.listar_funcionarios_por_empresa(empresa_id)
         
-        # Melhorar a lógica de filtro de funcionários ativos
-        funcionarios_ativos = []
-        for f in funcionarios:
-            status = db.verificar_status_funcionario(f.id)
-            if not status["em_ferias"] and not status["em_atestado"]:
-                funcionarios_ativos.append(f)
-
-        if funcionarios_ativos:
+        if funcionarios:
             lista_dataframes = []
 
-            # Agrupa funcionários por turno (apenas ativos)
+            # Agrupa funcionários por turno (usar todos, não apenas ativos)
             funcionarios_por_turno = {}
             for turno in turnos_funcionarios:
-                funcionarios_por_turno[turno] = [f for f in funcionarios_ativos if f.turno == turno]
+                funcionarios_por_turno[turno] = [f for f in funcionarios if f.turno == turno]
 
             for turno in turnos_funcionarios:
                 st.subheader(f'Escala {turno} - {empresa_selecionada}')
@@ -48,32 +42,61 @@ def app():
 
                 if funcionarios_turno:
                     funcionarios_por_funcao = {}
-                    ferias = []  # Lista de funcionários de férias/atestado
+                    afastamentos_info = {}  # Novo dicionário para armazenar férias e atestados
                     
                     # Atualizar a lógica de construção do dicionário de funcionários
                     for func in funcionarios_turno:
                         status = db.verificar_status_funcionario(func.id)
-                        if not status["em_ferias"] and not status["em_atestado"]:
-                            funcao = func.funcao
-                            nome = f"{func.nome} ({func.familia_letras})"
-                            if funcao not in funcionarios_por_funcao:
-                                funcionarios_por_funcao[funcao] = {}
-                            funcionarios_por_funcao[funcao][nome] = {
-                                'horario': func.horario_turno,
-                                'data_inicio': func.data_inicio,
-                                'turno': func.turno
+                        funcao = func.funcao
+                        nome = f"{func.nome} ({func.familia_letras})"
+                        
+                        if funcao not in funcionarios_por_funcao:
+                            funcionarios_por_funcao[funcao] = {}
+                            
+                        funcionarios_por_funcao[funcao][nome] = {
+                            'horario': func.horario_turno,
+                            'data_inicio': func.data_inicio,
+                            'turno': func.turno
+                        }
+                        
+                        # Buscar período de férias ativas do funcionário
+                        if status["em_ferias"]:
+                            ferias_ativa = session.query(Ferias).filter(
+                                Ferias.funcionario_id == func.id,
+                                Ferias.ativa == True
+                            ).first()
+                            
+                            if ferias_ativa:
+                                afastamentos_info[nome] = {
+                                    'tipo': 'Férias',
+                                    'data_inicio': ferias_ativa.data_inicio,
+                                    'data_fim': ferias_ativa.data_fim
+                                }
+                        
+                        # Buscar período de atestado ativo do funcionário
+                        atestado_ativo = session.query(Atestado).filter(
+                            Atestado.funcionario_id == func.id,
+                            Atestado.ativo == True
+                        ).first()
+                        
+                        if atestado_ativo:
+                            afastamentos_info[nome] = {
+                                'tipo': 'Atestado',
+                                'data_inicio': atestado_ativo.data_inicio,
+                                'data_fim': atestado_ativo.data_fim
                             }
-                        else:
-                            ferias.append(func.nome)
 
                     escala_por_funcao = gerar_escala_turnos_por_funcao(
                         funcionarios_por_funcao, 
                         data_inicio_str, 
-                        ferias
+                        afastamentos_info  # Passar o dicionário com todas as informações de afastamento
                     )
                     
                     num_dias_no_mes = calendar.monthrange(data_inicio.year, data_inicio.month)[1]
                     df_escala = transformar_escala_para_dataframe(escala_por_funcao, num_dias_no_mes)
+                    
+                    # Armazena o DataFrame na sessão para acesso posterior
+                    st.session_state.df_escala = df_escala
                     
                     st.write(f"Edite a escala do {turno}:")
                     df_escala_editado = st.data_editor(

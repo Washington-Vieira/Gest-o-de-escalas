@@ -7,6 +7,42 @@ from exportar_relatorio_ferias import adicionar_botao_exportacao_ferias
 from exportar_relatorio_atestados import exportar_relatorio_atestados
 import pandas as pd
 
+def atualizar_escala_ferias(session, funcionario_id, data_inicio, data_fim):
+    """
+    Atualiza a escala de trabalho marcando F/A nos dias de férias
+    """
+    try:
+        # Busca o funcionário
+        funcionario = session.query(Funcionario).get(funcionario_id)
+        if not funcionario:
+            return
+        
+        # Verifica se existe uma escala na sessão
+        if 'df_escala' in st.session_state:
+            df_escala = st.session_state.df_escala
+            nome_funcionario = f"{funcionario.nome} ({funcionario.familia_letras})"
+            
+            # Encontra a linha do funcionário
+            linha_funcionario = df_escala['Funcionário'] == nome_funcionario
+            if not linha_funcionario.any():
+                return
+            
+            # Para cada dia do mês na escala
+            for coluna in df_escala.columns:
+                if coluna.startswith('Dia '):
+                    dia = int(coluna.split(' ')[1])
+                    data_atual = data_inicio.replace(day=dia)
+                    
+                    # Se a data atual está dentro do período de férias
+                    if data_inicio <= data_atual <= data_fim:
+                        df_escala.loc[linha_funcionario, coluna] = 'F/A'
+            
+            # Atualiza o DataFrame na sessão
+            st.session_state.df_escala = df_escala
+            
+    except Exception as e:
+        st.error(f"Erro ao atualizar escala: {str(e)}")
+
 def app():
     st.title('Gerenciar Férias e Atestados')
     
@@ -73,6 +109,9 @@ def app():
                                 # Salvar no banco de dados
                                 session.add(novas_ferias)
                                 session.commit()
+                                
+                                # Atualizar a escala com F/A
+                                atualizar_escala_ferias(session, funcionario.id, data_inicio_ferias, data_fim_ferias)
                                 
                                 st.success(f'Férias registradas para {funcionario_selecionado} de {data_inicio_ferias} a {data_fim_ferias}')
                                 st.rerun()

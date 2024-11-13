@@ -1,14 +1,30 @@
 import pandas as pd
 
-def transformar_escala_para_dataframe(escala_por_funcao, num_dias_no_mes):
-    colunas = ['Funcionário'] + [f'Dia {i+1}' for i in range(num_dias_no_mes)]
+def transformar_escala_para_dataframe(escala, num_dias):
+    """
+    Transforma o dicionário de escala em um DataFrame
+    """
     dados = []
-
-    for funcao, escala in escala_por_funcao.items():
-        for nome, dias in escala.items():
-            linha = [nome] + dias
+    for funcao, funcionarios in escala.items():
+        for nome, turnos in funcionarios.items():
+            linha = [nome] + turnos
             dados.append(linha)
+    
+    colunas = ['Funcionário'] + [f'Dia {i+1}' for i in range(num_dias)]
+    return pd.DataFrame(dados, columns=colunas)
 
+def transformar_escala_folguistas_para_dataframe(escala, data_inicio):
+    """
+    Transforma o dicionário de escala dos folguistas em um DataFrame
+    """
+    num_dias = len(next(iter(escala.values())))
+    colunas = ['Folguista'] + [f'Dia {i+1}' for i in range(num_dias)]
+    dados = []
+    
+    for nome, dias in escala.items():
+        linha = [nome] + dias
+        dados.append(linha)
+    
     return pd.DataFrame(dados, columns=colunas)
 
 funcoes_familias = {
