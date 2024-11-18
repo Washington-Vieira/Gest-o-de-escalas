@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, DateTime, func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -30,7 +30,9 @@ class Ferias(Base):
     funcionario_id = Column(Integer, ForeignKey('funcionarios.id'), nullable=False)
     data_inicio = Column(Date, nullable=False)
     data_fim = Column(Date, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    dias = Column(Integer, nullable=False)
+    ativa = Column(Boolean, default=True)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
     
     funcionario = relationship("Funcionario", back_populates="ferias")
 

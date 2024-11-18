@@ -1,13 +1,47 @@
 import streamlit as st
 import pandas as pd
 import calendar
-from datetime import datetime
+from datetime import datetime, date
 from escala_generator import gerar_escala_turnos_por_funcao
 from utils import transformar_escala_para_dataframe, turnos_funcionarios
 from exportar_escalas import adicionar_botao_exportacao, exportar_escalas_para_excel
 from database.config import get_session
 from database.crud import DatabaseManager
 from database.models import Ferias, Atestado
+
+def obter_afastamentos(session, funcionarios):
+    """Obtém todos os afastamentos (férias e atestados) ativos"""
+    afastamentos_info = {}
+    
+    for funcionario in funcionarios:
+        nome = f"{funcionario.nome} ({funcionario.familia_letras})"
+        
+        # Verifica férias ativas
+        ferias = session.query(Ferias).filter(
+            Ferias.funcionario_id == funcionario.id,
+            Ferias.ativa == True
+        ).first()
+        
+        if ferias:
+            afastamentos_info[nome] = {
+                'data_inicio': ferias.data_inicio,
+                'data_fim': ferias.data_fim
+            }
+            continue  # Se tem férias, não precisa verificar atestado
+            
+        # Verifica atestados ativos
+        atestado = session.query(Atestado).filter(
+            Atestado.funcionario_id == funcionario.id,
+            Atestado.ativo == True
+        ).first()
+        
+        if atestado:
+            afastamentos_info[nome] = {
+                'data_inicio': atestado.data_inicio,
+                'data_fim': atestado.data_fim
+            }
+    
+    return afastamentos_info
 
 def app():
     st.title('Geração de Escala')
@@ -42,7 +76,7 @@ def app():
 
                 if funcionarios_turno:
                     funcionarios_por_funcao = {}
-                    afastamentos_info = {}  # Novo dicionário para armazenar férias e atestados
+                    afastamentos_info = obter_afastamentos(session, funcionarios_turno)
                     
                     # Atualizar a lógica de construção do dicionário de funcionários
                     for func in funcionarios_turno:
@@ -59,21 +93,20 @@ def app():
                             'turno': func.turno
                         }
                         
-                        # Buscar período de férias ativas do funcionário
-                        if status["em_ferias"]:
-                            ferias_ativa = session.query(Ferias).filter(
-                                Ferias.funcionario_id == func.id,
-                                Ferias.ativa == True
-                            ).first()
-                            
-                            if ferias_ativa:
-                                afastamentos_info[nome] = {
-                                    'tipo': 'Férias',
-                                    'data_inicio': ferias_ativa.data_inicio,
-                                    'data_fim': ferias_ativa.data_fim
-                                }
+                        # Verificar férias ativas
+                        ferias_ativa = session.query(Ferias).filter(
+                            Ferias.funcionario_id == func.id,
+                            Ferias.ativa == True
+                        ).first()
                         
-                        # Buscar período de atestado ativo do funcionário
+                        if ferias_ativa:
+                            afastamentos_info[nome] = {
+                                'tipo': 'Férias',
+                                'data_inicio': ferias_ativa.data_inicio,
+                                'data_fim': ferias_ativa.data_fim
+                            }
+                        
+                        # Verificar atestados ativos
                         atestado_ativo = session.query(Atestado).filter(
                             Atestado.funcionario_id == func.id,
                             Atestado.ativo == True
@@ -88,8 +121,8 @@ def app():
 
                     escala_por_funcao = gerar_escala_turnos_por_funcao(
                         funcionarios_por_funcao, 
-                        data_inicio_str, 
-                        afastamentos_info  # Passar o dicionário com todas as informações de afastamento
+                        data_inicio_str,
+                        afastamentos_info
                     )
                     
                     num_dias_no_mes = calendar.monthrange(data_inicio.year, data_inicio.month)[1]
@@ -119,32 +152,33 @@ def app():
                 st.write("Visualização da escala final:")
                 st.dataframe(df_final, hide_index=True)
                 
-                # Modificação aqui: Usar dados da sessão se existirem
-                if 'escala_folguistas' in st.session_state:
-                    df_folguistas = st.session_state.escala_folguistas
-                else:
-                    # Caso não haja dados na sessão, criar DataFrame vazio
-                    df_folguistas = pd.DataFrame()
+                # Buscar escala de folguistas usando a mesma data
+                primeiro_dia_mes = date(data_inicio.year, data_inicio.month, 1)
+                data_inicio_str = primeiro_dia_mes.strftime('%Y-%m-%d')
+                escala_key = f"escala_folguistas_{empresa_selecionada}_{data_inicio_str}"
                 
-                # Botão de exportação com os dados corretos
-                if st.button('Exportar para Excel'):
-                    try:
-                        mes_ano = data_inicio.strftime('%B %Y')
-                        excel_file = exportar_escalas_para_excel(
-                            df_final,
-                            df_folguistas,
-                            empresa_selecionada,
-                            mes_ano
-                        )
-                        
-                        st.download_button(
-                            label="Baixar Excel",
-                            data=excel_file,
-                            file_name=f"escalas_{empresa_selecionada}_{mes_ano}.xlsx",
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        )
-                    except Exception as e:
-                        st.error(f"Erro ao exportar: {str(e)}")
+                # Buscar escala de folguistas da session_state
+                df_folguistas = st.session_state.get(escala_key, pd.DataFrame())
+                
+                # Gerar Excel e mostrar botão de download direto
+                try:
+                    mes_ano = primeiro_dia_mes.strftime('%B %Y')
+                    excel_file = exportar_escalas_para_excel(
+                        df_final,            # Escala principal
+                        df_folguistas,       # Escala de folguistas
+                        empresa_selecionada,
+                        mes_ano
+                    )
+                    
+                    st.download_button(
+                        label="📥 Exportar Escala para Excel",
+                        data=excel_file,
+                        file_name=f"escalas_{empresa_selecionada}_{mes_ano}.xlsx",
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+                except Exception as e:
+                    st.error(f"Erro ao gerar arquivo Excel: {str(e)}")
         else:
             st.warning('Não há funcionários cadastrados para esta empresa.')
     else:

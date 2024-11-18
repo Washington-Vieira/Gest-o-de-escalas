@@ -20,7 +20,7 @@ if 'empresas' not in st.session_state:
 PAGES = {
     "🏢 Cadastro de Empresa": cadastro_empresa,
     "👤 Cadastro de Funcionário": cadastro_funcionario,
-    "🏖️ Gerenciar Férias": gerenciar_ferias,
+    "🚨 Gerenciar Afastamentos": gerenciar_ferias,
     "📅 Gerar Escala": gerar_escala,
     "📊 Gerar Escala Folguista": gerar_escala_folguista
 }

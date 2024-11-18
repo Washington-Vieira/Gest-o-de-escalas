@@ -61,7 +61,9 @@ class Ferias(SQLModel, table=True):
     funcionario_id: int = Field(foreign_key="funcionarios.id")
     data_inicio: date
     data_fim: date
+    dias: int
     ativa: bool = Field(default=True)
+    created_at: datetime
     
     # Relacionamento
     funcionario: Funcionario = Relationship(back_populates="ferias")
