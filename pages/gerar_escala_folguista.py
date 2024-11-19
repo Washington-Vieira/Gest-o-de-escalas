@@ -40,7 +40,7 @@ def app():
         
         if folguistas:
             # Se não existir escala salva ou usuário solicitar regeneração
-            if escala_key not in st.session_state or st.button("Gerar Nova Escala"):
+            if escala_key not in st.session_state or st.button("LimparEscala"):
                 folguistas_info = {}
                 afastamentos_info = {}
                 
@@ -111,11 +111,11 @@ def app():
             # Criar DataFrame vazio para a escala principal (já que é só folguistas)
             df_escala_principal = pd.DataFrame()
             
-            adicionar_botao_exportacao(
-                df_escala_final=df_escala_principal,  # DataFrame vazio para escala principal
-                df_folguistas=df_escala_editado,      # DataFrame dos folguistas
-                empresa_nome=empresa_selecionada      # Nome da empresa
-            )
+            # adicionar_botao_exportacao(
+            #     df_escala_final=df_escala_principal,  # DataFrame vazio para escala principal
+            #     df_folguistas=df_escala_editado,      # DataFrame dos folguistas
+            #     empresa_nome=empresa_selecionada      # Nome da empresa
+            # )
             
             # st.write("Visualização final da escala dos folguistas:")
             # st.dataframe(st.session_state[escala_key], hide_index=True)
