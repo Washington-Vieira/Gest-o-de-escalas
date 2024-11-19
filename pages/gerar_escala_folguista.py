@@ -105,8 +105,8 @@ def app():
                 st.session_state[escala_key] = df_escala_editado
                 st.success('Alterações na escala dos folguistas salvas com sucesso!')
             
-            # Atualizar df_escala na session_state e adicionar botão de exportação
-            st.session_state.df_escala = df_escala_editado
+            # Atualizar df_escala na session_state
+            st.session_state[escala_key] = df_escala_editado
             
             # Criar DataFrame vazio para a escala principal (já que é só folguistas)
             df_escala_principal = pd.DataFrame()

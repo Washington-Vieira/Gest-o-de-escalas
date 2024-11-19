@@ -24,21 +24,25 @@ def gerar_escala_turnos_por_funcao(funcionarios_por_funcao, data_inicio, afastam
         escala = {nome: [] for nome in funcionarios.keys()}
         domingos_folga = {nome: domingos[i % len(domingos)] for i, nome in enumerate(funcionarios.keys())}
         
-        # Inicializar contadores de dias trabalhados para cada funcionário
+        # Inicializar contadores
         dias_trabalhados = {nome: 0 for nome in funcionarios.keys()}
-        # Definir dias de folga escalonados para evitar folgas simultâneas
-        inicio_ciclo = {nome: i for i, nome in enumerate(funcionarios.keys())}
+        ultima_folga = {nome: -2 for nome in funcionarios.keys()}
+        folgas_no_mes = {nome: 0 for nome in funcionarios.keys()}
+        folgas_por_dia = {dia: [] for dia in range(num_dias_no_mes)}
+        
+        # Distribuir os inícios dos ciclos 5x1 de forma escalonada
+        num_funcionarios = len(funcionarios)
+        inicio_ciclo = {nome: i % 6 for i, nome in enumerate(funcionarios.keys())}
 
         for dia in range(num_dias_no_mes):
             data_turno = data_atual.replace(day=dia + 1)
             
-            # Para cada funcionário da função atual
             for nome in funcionarios.keys():
                 turno_atual = funcionarios[nome]['turno']
                 horario_atual = funcionarios[nome]['horario']
                 domingo_folga = domingos_folga[nome]
                 
-                # Verifica afastamentos (férias ou atestado)
+                # Verifica afastamentos
                 em_afastamento = False
                 if nome in afastamentos_info:
                     afastamento = afastamentos_info[nome]
@@ -48,21 +52,26 @@ def gerar_escala_turnos_por_funcao(funcionarios_por_funcao, data_inicio, afastam
 
                 if em_afastamento:
                     escala[nome].append("F/A")
+                    dias_trabalhados[nome] = 0
                     continue
 
                 # Verifica se é domingo de folga
                 if data_turno.date() == domingo_folga.date():
-                    escala[nome].append("Folga (Domingo)")
-                    dias_trabalhados[nome] = 0  # Reinicia contagem após folga
-                    continue
+                    if nome not in folgas_por_dia[dia]:
+                        escala[nome].append("Folga (Domingo)")
+                        ultima_folga[nome] = dia
+                        folgas_no_mes[nome] += 1
+                        folgas_por_dia[dia].append(nome)
+                        dias_trabalhados[nome] = 0
+                        continue
 
-                # Calcula se é dia de folga no ciclo 5x1
-                dia_no_ciclo = (dia + inicio_ciclo[nome]) % (dias_trabalho + dias_folga)
-                eh_dia_folga = dia_no_ciclo == dias_trabalho
-
-                if eh_dia_folga and data_turno.weekday() != 6:  # Não é domingo
+                # Verifica se completou o ciclo de 5 dias trabalhados
+                if dias_trabalhados[nome] >= 5 and len(folgas_por_dia[dia]) < 1:
                     escala[nome].append("Folga")
-                    dias_trabalhados[nome] = 0  # Reinicia contagem após folga
+                    ultima_folga[nome] = dia
+                    folgas_no_mes[nome] += 1
+                    folgas_por_dia[dia].append(nome)
+                    dias_trabalhados[nome] = 0
                 else:
                     # Dia normal de trabalho
                     escala[nome].append(f"{turno_atual}: {horario_atual}")
