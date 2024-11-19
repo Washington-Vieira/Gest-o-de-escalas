@@ -68,9 +68,9 @@ def exportar_escalas_para_excel(df_escala_final, df_folguistas, empresa_nome, me
                 cell.font = Font(size=10, bold=True)
 
         # Aplicar formatação condicional
-        verde = PatternFill(start_color='00B050', end_color='00B050', fill_type='solid')
-        laranja = PatternFill(start_color='FF6400', end_color='FF6400', fill_type='solid')
-        azul = PatternFill(start_color='00B0F0', end_color='00B0F0', fill_type='solid')
+        verde = PatternFill(start_color='00c359', end_color='00c359', fill_type='solid')
+        laranja = PatternFill(start_color='ff771f', end_color='ff771f', fill_type='solid')
+        azul = PatternFill(start_color='c9f1ff', end_color='c9f1ff', fill_type='solid')
 
         # Aplicar regra para "folga"
         worksheet.conditional_formatting.add(f'B4:{get_column_letter(worksheet.max_column)}{worksheet.max_row}',
@@ -156,7 +156,7 @@ def exportar_escalas_para_excel(df_escala_final, df_folguistas, empresa_nome, me
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
         
         # Definir altura da linha de cabeçalho dos folguistas para 15
-        ws.row_dimensions[linha_cabecalho_folguistas].height = 15
+        ws.row_dimensions[linha_cabecalho_folguistas].height = 25
 
         # Dados da escala de folguistas
         for row_idx, row in df_folguistas.iterrows():
